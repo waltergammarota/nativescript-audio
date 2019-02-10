@@ -5,6 +5,7 @@
     "indent": [true, "spaces"],
     "no-duplicate-variable": true,
     "no-eval": true,
+    "prefer-const": true,
     "no-internal-module": true,
     "no-trailing-whitespace": true,
     "no-var-keyword": true,
@@ -23,13 +24,6 @@
       }
     ],
     "variable-name": [true, "ban-keywords"],
-    "whitespace": [
-      true,
-      "check-branch",
-      "check-decl",
-      "check-operator",
-      "check-separator",
-      "check-type"
-    ]
+    "whitespace": [true, "check-branch", "check-decl", "check-operator", "check-separator", "check-type"]
   }
 }

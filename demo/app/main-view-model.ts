@@ -1,4 +1,10 @@
-import { AudioPlayerOptions, AudioRecorderOptions, TNSPlayer, TNSRecorder } from 'nativescript-audio';
+import {
+  AudioPlayerEvents,
+  AudioPlayerOptions,
+  AudioRecorderOptions,
+  TNSPlayer,
+  TNSRecorder
+} from 'nativescript-audio';
 import * as app from 'tns-core-modules/application';
 import { Observable } from 'tns-core-modules/data/observable';
 import { File, knownFolders } from 'tns-core-modules/file-system';
@@ -7,9 +13,6 @@ import * as timer from 'tns-core-modules/timer';
 import * as dialogs from 'tns-core-modules/ui/dialogs';
 import { Page } from 'tns-core-modules/ui/page';
 import { Slider } from 'tns-core-modules/ui/slider';
-import './async-await';
-
-declare const android;
 
 export class AudioDemo extends Observable {
   @ObservableProperty() public isPlaying: boolean;
@@ -42,10 +45,15 @@ export class AudioDemo extends Observable {
   ];
   private _meterInterval: any;
   private _slider: Slider;
+  private _durationTrackingInterval;
+  private _volumeTrackingInterval;
 
   constructor(page: Page) {
     super();
     this._player = new TNSPlayer();
+    this._player.events.on(AudioPlayerEvents.ready, args => {
+      console.log('AudioPlayer Ready event executed...');
+    });
     this._player.debug = true; // set true for tns_player logs
 
     this._recorder = new TNSRecorder();
@@ -82,7 +90,9 @@ export class AudioDemo extends Observable {
         androidEncoder = 3;
       }
 
-      const recordingPath = `${audioFolder.path}/recording.${this.platformExtension()}`;
+      const recordingPath = `${
+        audioFolder.path
+      }/recording.${this.platformExtension()}`;
 
       const recorderOptions: AudioRecorderOptions = {
         filename: recordingPath,
@@ -146,7 +156,9 @@ export class AudioDemo extends Observable {
   public getFile(args) {
     try {
       const audioFolder = knownFolders.currentApp().getFolder('audio');
-      const recordedFile = audioFolder.getFile(`recording.${this.platformExtension()}`);
+      const recordedFile = audioFolder.getFile(
+        `recording.${this.platformExtension()}`
+      );
       console.log(JSON.stringify(recordedFile));
       console.log('recording exists: ' + File.exists(recordedFile.path));
       this.recordedAudioFile = recordedFile.path;
@@ -157,7 +169,9 @@ export class AudioDemo extends Observable {
 
   public async playRecordedFile(args) {
     const audioFolder = knownFolders.currentApp().getFolder('audio');
-    const recordedFile = audioFolder.getFile(`recording.${this.platformExtension()}`);
+    const recordedFile = audioFolder.getFile(
+      `recording.${this.platformExtension()}`
+    );
     console.log('RECORDED FILE : ' + JSON.stringify(recordedFile));
 
     const playerOptions: AudioPlayerOptions = {
@@ -196,6 +210,7 @@ export class AudioDemo extends Observable {
   public async playAudio(filepath: string, fileType: string) {
     try {
       const playerOptions: AudioPlayerOptions = {
+        autoPlay: true,
         audioFile: filepath,
         loop: false,
         completeCallback: async () => {
@@ -221,9 +236,8 @@ export class AudioDemo extends Observable {
           this.isPlaying = false;
         });
         this.isPlaying = true;
-        this.audioTrackDuration = await this._player.getAudioTrackDuration();
         // start audio duration tracking
-        this._startDurationTracking(this.audioTrackDuration);
+        this._startDurationTracking();
         this._startVolumeTracking();
       } else if (fileType === 'remoteFile') {
         await this._player.playFromUrl(playerOptions).catch(() => {
@@ -239,30 +253,31 @@ export class AudioDemo extends Observable {
   /**
    * PLAY REMOTE AUDIO FILE
    */
-  public playRemoteFile(args) {
+  public playRemoteFile() {
     console.log('playRemoteFile');
-    const filepath = 'http://www.noiseaddicts.com/samples_1w72b820/2514.mp3';
+    // const filepath = 'http://www.noiseaddicts.com/samples_1w72b820/2514.mp3';
+    const filepath = 'https://edge1-b.exa.live365.net/a88164'; // not playing consistently
+    // const filepath = 'http://74.208.89.18:8000/SLCR_highdef.mp3';
 
     this.playAudio(filepath, 'remoteFile');
   }
 
   public resumePlayer() {
-    console.log(JSON.stringify(this._player));
     this._player.resume();
   }
 
   /**
    * PLAY LOCAL AUDIO FILE from app folder
    */
-  public playLocalFile(args) {
-    let filepath = '~/audio/angel.mp3';
+  public playLocalFile() {
+    const filepath = '~/audio/angel.mp3';
     this.playAudio(filepath, 'localFile');
   }
 
   /**
    * PAUSE PLAYING
    */
-  public async pauseAudio(args) {
+  public async pauseAudio() {
     try {
       await this._player.pause();
       this.isPlaying = false;
@@ -272,15 +287,17 @@ export class AudioDemo extends Observable {
     }
   }
 
-  public async stopPlaying(args) {
+  public async stopPlaying() {
     await this._player.dispose();
+    timer.clearInterval(this._volumeTrackingInterval);
+    timer.clearInterval(this._durationTrackingInterval);
     alert('Media Player Disposed.');
   }
 
   /**
    * RESUME PLAYING
    */
-  public resumePlaying(args) {
+  public resumePlaying() {
     console.log('START');
     this._player.play();
   }
@@ -314,22 +331,20 @@ export class AudioDemo extends Observable {
     return `${app.android ? 'm4a' : 'caf'}`;
   }
 
-  private async _startDurationTracking(duration) {
-    if (this._player && this._player.isAudioPlaying()) {
-      const timerId = timer.setInterval(() => {
-        this.remainingDuration = duration - this._player.currentTime;
-        // console.log(`this.remainingDuration = ${this.remainingDuration}`);
-      }, 1000);
-    }
+  private async _startDurationTracking() {
+    this._durationTrackingInterval = timer.setInterval(() => {
+      // set the duratio for the UI binded value
+      this.audioTrackDuration = this._player.duration;
+      // calculate the remaining duration by subtracting current time of player
+      this.remainingDuration =
+        this.audioTrackDuration - this._player.currentTime;
+    }, 2000);
   }
 
   private _startVolumeTracking() {
-    if (this._player) {
-      const timerId = timer.setInterval(() => {
-        console.log('volume tracking', this._player.volume);
-        this.currentVolume = this._player.volume;
-      }, 2000);
-    }
+    this._volumeTrackingInterval = timer.setInterval(() => {
+      this.currentVolume = this._player.volume;
+    }, 1000);
   }
 }
 

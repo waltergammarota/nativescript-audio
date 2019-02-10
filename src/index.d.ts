@@ -327,5 +327,6 @@ export interface IAudioPlayerEvents {
   seek: 'seek';
   paused: 'paused';
   started: 'started';
+  ready: 'ready';
 }
 export const AudioPlayerEvents: IAudioPlayerEvents;

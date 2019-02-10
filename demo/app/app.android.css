@@ -1,0 +1,19 @@
+@import '~/nativescript-theme-core/css/core.light.css';
+
+.material-icons {
+  font-family: MaterialIcons-Regular, Material Icons;
+}
+
+button {
+  padding: 6;
+  margin: 8;
+}
+
+.btn-primary {
+  background-color: #fff000;
+  color: #333;
+}
+
+.center {
+  horizontal-align: center;
+}
