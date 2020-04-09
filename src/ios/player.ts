@@ -270,6 +270,7 @@ export class TNSPlayer extends NSObject implements TNSPlayerI {
     return new Promise((resolve, reject) => {
       try {
         if (this._player) {
+          if(time>0) time = Math.floor(time/1000);
           TNS_Player_Log('seekTo', time);
           this._player.currentTime = time;
           resolve(true);
