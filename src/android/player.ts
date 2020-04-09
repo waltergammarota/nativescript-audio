@@ -108,7 +108,7 @@ export class TNSPlayer implements TNSPlayerI {
             new android.media.MediaPlayer.OnCompletionListener({
               onCompletion: mp => {
                 if (options.loop === true) {
-                  mp.seekTo(5);
+                  mp.seekTo(5000);
                   mp.start();
                 }
 
@@ -238,8 +238,7 @@ export class TNSPlayer implements TNSPlayerI {
     return new Promise((resolve, reject) => {
       try {
         if (this._player) {
-          time = time * 1000;
-          TNS_Player_Log('seekTo seconds', time);
+          TNS_Player_Log('seekTo milliseconds', time);
           this._player.seekTo(time);
           this._sendEvent(AudioPlayerEvents.seek);
         }
